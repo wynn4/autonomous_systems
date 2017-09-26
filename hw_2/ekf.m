@@ -150,6 +150,7 @@ for i=1:length(t)
     
 end
 plot(x_true, y_true, x_est, y_est,'-.')
+legend('landmarks','robot body','robot front','truth','estimate')
 
 % state plots
 figure(2), clf

@@ -16,7 +16,7 @@ function handle = drawLine(x, y, theta, handle)
     Y = line_pts(2,:);
     
     if isempty(handle)
-        handle = fill(X,Y,'b');
+        handle = fill(X,Y,'k','LineWidth',2);
     else
         set(handle,'XData',X,'YData',Y);
     end
