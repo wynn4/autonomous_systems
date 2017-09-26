@@ -13,6 +13,7 @@ function drawRobot(x, y, theta, landmarks, first)
         hold on
         robot_handle = drawBody(x,y,theta, []);
         line_handle = drawLine(x,y,theta, []);
+        title('Mobile Robot Environment')
         xlabel('x pos (m)')
         ylabel('y pos (m)')
         axis([-10, 10, -10, 10]);

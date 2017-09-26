@@ -22,6 +22,4 @@ function handle = drawBody(x, y, theta, handle)
         set(handle,'XData',X,'YData',Y);
     end
     
-    
-
 end
