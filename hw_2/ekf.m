@@ -83,9 +83,9 @@ for i=1:length(t)
     theta_true(i) = theta;
     
     % Task 2: Simulate range and bearing measurements to landmarks
-    range(i,1) = norm([x; y] - landmarks(:,1)) + randn*sigma_r^2;   % measurement + noise
-    range(i,2) = norm([x; y] - landmarks(:,2)) + randn*sigma_r^2;
-    range(i,3) = norm([x; y] - landmarks(:,3)) + randn*sigma_r^2;
+    range(i,1) = norm([x; y] - landmarks(:,1)) + randn*sigma_r;   % measurement + noise
+    range(i,2) = norm([x; y] - landmarks(:,2)) + randn*sigma_r;
+    range(i,3) = norm([x; y] - landmarks(:,3)) + randn*sigma_r;
     
     bearing(i,1) = atan2(landmarks(2,1) - y, landmarks(1,1) - x) - theta + randn*sigma_phi;  % measurement + noise
     bearing(i,2) = atan2(landmarks(2,2) - y, landmarks(1,2) - x) - theta + randn*sigma_phi;   % maybe sqrt
@@ -94,8 +94,8 @@ for i=1:length(t)
     % Task 3: Implement the full EKF algorithm found in Table 7.2 (p. 204)
     
     % input velocities
-    v_t = v_hat;
-    w_t = w_hat;
+    v_t = v_c(i);
+    w_t = w_c(i);
     
     % line 2:
     theta_est = mu_t(3);
@@ -124,7 +124,7 @@ for i=1:length(t)
         % line 11 (skip line 10):
         q = (landmarks(1,j) - mu_t(1))^2 + (landmarks(2,j) - mu_t(2))^2;
         % line 12 (predicted measurement):
-        zhat_t = [sqrt(q); atan2(landmarks(2,j) - mu_t(2), landmarks(1,j) - mu_t(1)) - theta_est];
+        zhat_t = [sqrt(q); atan2(landmarks(2,j) - mu_t(2), landmarks(1,j) - mu_t(1)) - mu_t(3)];
         % line 13:
         H_t = [-(landmarks(1,j) - mu_t(1))/sqrt(q), -(landmarks(2,j) - mu_t(2))/sqrt(q), 0;
                (landmarks(2,j) - mu_t(2))/q, -(landmarks(1,j) - mu_t(1))/q, -1];
