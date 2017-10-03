@@ -2,16 +2,17 @@
 % Jesse Wynn
 % October 03, 2017
 
-clc;
-clear all;
-close all;
+clc
+clear
+close all
 
 % time params
 Ts = 0.1;   % sec
 t = 0:Ts:20;
 
 % commanded velocity
-cw_c = -0.2 + 2 * cos(2 * pi * (0.6) * t);
+v_c = 1 + 0.5 * cos(2 * pi * (0.2) * t);
+w_c = -0.2 + 2 * cos(2 * pi * (0.6) * t);
 
 % noise params
 alpha_1 = 0.1;
@@ -27,7 +28,7 @@ sigma_phi = 0.05;
 % landmark locations
 landmarks = [6, -7 6;   % [x_positions; y_positions]
              4, 8, -4];
-landmarks = landmarks(:,1); % just one landmark for now
+% landmarks = landmarks(:,1); % just one landmark for now
          
 num_landmarks = size(landmarks);
 num_landmarks = num_landmarks(2);
@@ -44,6 +45,10 @@ x_est = zeros(1,length(t));
 y_est = zeros(1,length(t));
 theta_est = zeros(1,length(t));
 
+Sigma_x = zeros(1,length(t));
+Sigma_y = zeros(1,length(t));
+Sigma_theta = zeros(1,length(t));
+
          
 % initital conditions
 x = -5;
@@ -54,13 +59,13 @@ a = 0;
 
 % initial state
 mu_t = [x; y; theta];
-Sigma_t = [1, 0, 0;
-           0, 1, 0;
-           0, 0, 1];
+Sigma_t = [0.1, 0, 0;
+           0, 0.1, 0;
+           0, 0, 0.1];
        
 % tuning params for sigma points
-k = 1; %0;
-alpha = 1; %0.1;
+k = 1;
+alpha = 1;
 beta = 2;
 
 % size of the augmented state
@@ -81,6 +86,8 @@ weight_m(2:length(weight_m)) = 1/(2*(n + lambda));
 
 weight_c(1) = lambda/(n + lambda) + (1 - alpha^2 + beta);
 weight_c(2:length(weight_c)) = 1/(2*(n + lambda));
+
+landmark_number = 1;    % start with the first landmark
        
 % plot the first time
 drawRobot(x,y,theta,landmarks,first);
@@ -88,7 +95,7 @@ first = 1;
 for i = 1:length(t)
     
     pause(0.01)
-    % Task 1: Implement velocity motion model (Table 5.3)
+    % implement velocity motion model from Table 5.3 (this gives us truth)
     v_hat = v_c(i) + randn*sqrt(alpha_1*(v_c(i))^2 + alpha_2*(w_c(i))^2);
     w_hat = w_c(i) + randn*sqrt(alpha_3*(v_c(i))^2 + alpha_4*(w_c(i))^2);
     gamma_hat = randn*sqrt(alpha_5*(v_c(i))^2 + alpha_6*(w_c(i))^2);
@@ -104,14 +111,14 @@ for i = 1:length(t)
     y_true(i) = y;
     theta_true(i) = theta;
     
-    % Task 2: Simulate range and bearing measurements to landmarks
+    % simulate range and bearing measurements to landmarks
     range(i,1) = norm([x; y] - landmarks(:,1)) + randn*sigma_r;   % measurement + noise
-%     range(i,2) = norm([x; y] - landmarks(:,2)) + randn*sigma_r;
-%     range(i,3) = norm([x; y] - landmarks(:,3)) + randn*sigma_r;
-%     
+    range(i,2) = norm([x; y] - landmarks(:,2)) + randn*sigma_r;
+    range(i,3) = norm([x; y] - landmarks(:,3)) + randn*sigma_r;
+    
     bearing(i,1) = atan2(landmarks(2,1) - y, landmarks(1,1) - x) - theta + randn*sigma_phi;  % measurement + noise
-%     bearing(i,2) = atan2(landmarks(2,2) - y, landmarks(1,2) - x) - theta + randn*sigma_phi;   % maybe sqrt
-%     bearing(i,3) = atan2(landmarks(2,3) - y, landmarks(1,3) - x) - theta + randn*sigma_phi;
+    bearing(i,2) = atan2(landmarks(2,2) - y, landmarks(1,2) - x) - theta + randn*sigma_phi;   % maybe sqrt
+    bearing(i,3) = atan2(landmarks(2,3) - y, landmarks(1,3) - x) - theta + randn*sigma_phi;
     
     
     % implement the UKF algorithm found in Table 7.4 (p. 221)
@@ -151,8 +158,10 @@ for i = 1:length(t)
     Sigma_t = weight_c .* (Chi_bar_t_x - mu_t) * (Chi_bar_t_x - mu_t)';
     
     % predict observations at sigma points and compute Gaussian stats
+    
+    % cycle through landmarks but use only one each time through the loop:
     % line 10
-    Z_bar_t = h([x, y]', Chi_bar_t_x, Chi_t_aug(6:7,:));
+    Z_bar_t = h([landmarks(1,landmark_number), landmarks(2,landmark_number)]', Chi_bar_t_x, Chi_t_aug(6:7,:));
     
     % line 11
     z_hat_t = Z_bar_t * weight_m';
@@ -168,13 +177,17 @@ for i = 1:length(t)
     K_t = Sigma_t_x_z / S_t;
     
     % line 15
-    mu_t = mu_t + K_t * ([range(i,1); bearing(i,1)] - z_hat_t);
+    mu_t = mu_t + K_t * ([range(i,landmark_number); bearing(i,landmark_number)] - z_hat_t);
     
     % line 16
     Sigma_t = Sigma_t - K_t * S_t * K_t';
     
-    % line 17
-    % do I really need this???
+    % next time through, cycle to the next landmark
+    landmark_number = landmark_number + 1;
+    
+    if landmark_number > num_landmarks
+        landmark_number = 1;    % reset
+    end
     
     % End UKF implementation
     
@@ -182,6 +195,10 @@ for i = 1:length(t)
     x_est(i) = mu_t(1);
     y_est(i) = mu_t(2);
     theta_est(i) = mu_t(3);
+    
+    Sigma_x(i) = Sigma_t(1,1);
+    Sigma_y(i) = Sigma_t(2,2);
+    Sigma_theta(i) = Sigma_t(3,3);
 end
 
 plot(x_true, y_true, x_est, y_est,'-.')
@@ -194,5 +211,20 @@ xlabel('time (s)')
 ylabel('heading (rad)')
 legend('truth','estimate')
 
+figure(3)
+subplot(3,1,1)
+plot(t,x_true - x_est,t,2*sqrt(Sigma_x),'r',t,-2*sqrt(Sigma_x),'r')
+title('Error Plots')
+ylabel('x')
+legend('error','2-sigma bound')
+
+subplot(3,1,2)
+plot(t,y_true - y_est,t,2*sqrt(Sigma_y),'r',t,-2*sqrt(Sigma_y),'r')
+ylabel('y')
+
+subplot(3,1,3)
+plot(t,theta_true - theta_est,t,2*sqrt(Sigma_theta),'r',t,-2*sqrt(Sigma_theta),'r')
+ylabel('theta')
+xlabel('time (s)')
 
 
