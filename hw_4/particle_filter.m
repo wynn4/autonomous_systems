@@ -29,7 +29,7 @@ sigma_r = 0.1;
 sigma_phi = 0.05;
 
 % landmark locations
-landmarks = [6, -7 6;  
+landmarks = [6, -7, 6;  
              4, 8, -4];
          
 num_landmarks = size(landmarks);
@@ -72,13 +72,13 @@ Sigma_x = zeros(1,length(t));
 Sigma_y = zeros(1,length(t));
 Sigma_theta = zeros(1,length(t));
          
-% initital conditions
+% robot initital conditions
 x = -5;
 y = -3;
 theta = pi/2;
-first = 0;
        
 % plot the first time
+first = 0;
 drawRobot(x,y,theta,landmarks, Chi_t_prev, first);
 first = 1;
 pause(0.5)
@@ -130,8 +130,8 @@ for i = 1:length(t)
     end
     
     % use the low variance sampler to resample particles (particles with
-    % highter weight are more likely to be chosen and may be chosen more
-    % than once)
+    % highter weight are more likely to be chosen and some will be chosen
+    % more than once.
     
     % first, normalize the weights
     W_t = W_t./sum(W_t);

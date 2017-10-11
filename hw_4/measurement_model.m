@@ -1,7 +1,7 @@
 function w_t = measurement_model(z, x_t, map, noise)
 
     % vector to hold the probabilities
-    q = zeros(3,1);
+    q = zeros(length(map),1);
     
     % noise terms
     sigma_r = noise(1);
@@ -33,7 +33,7 @@ function w_t = measurement_model(z, x_t, map, noise)
     end
     
     % total weight for the given particle
-    w_t = q(1)*q(2)*q(3);
+    w_t = prod(q);  % product of the probabilities for each landmark
 end
 
 
