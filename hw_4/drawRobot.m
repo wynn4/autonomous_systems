@@ -5,7 +5,6 @@ function drawRobot(x, y, theta, landmarks, particles, first)
     persistent robot_handle
     persistent line_handle
     persistent particles_handle
-%     particle_handles = gobjects(length(particles), 1);
     
     if first==0
         figure(1), clf
