@@ -21,17 +21,17 @@ function l = inverse_range_sensor_model(m, x_t, z_t, alpha, beta, z_max, theta_k
     
     if r > min(z_max, z_t + alpha/2) || abs(phi - theta_k) > beta/2
         l = l0;
-        return
-    end
     
-    if z_t < z_max && abs(r - z_t) < alpha/2
+    
+    elseif z_t < z_max && abs(r - z_t) < alpha/2
         l = locc;
-        return
-    end
     
-    if r <= z_t
+    
+    elseif r <= z_t
         l = lfree;
-        return
+    
+    else
+        l = l0;
     end
     
     % cell_status:
