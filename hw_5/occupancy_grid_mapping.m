@@ -2,6 +2,7 @@
 % Jesse Wynn
 % October 25, 2017
 
+%% Occupancy Grid Mapping Implementation
 clc
 clear
 close all
@@ -47,22 +48,30 @@ for i = 1:length(X)
 end
 
 
+%% Plots
+map = zeros(grid_res);
 
-
-
-function val = sat(num)
-    max = 1;
-    min = 0;
-    
-    if num >= max
-        val = max;
-    elseif num <= min
-        val = min;
-    else
-        val = num;
+% go thrugh the map and flip the values (for plotting purposes)
+for m = 1:grid_res
+    for n = 1:grid_res
+        if l(m,n) > 0.5
+            map(m,n) = 0;
+            
+        elseif l(m,n) < 0.5
+            map(m,n) = 1;
+            
+        else
+            map(m,n) = l(m,n);
+        end
     end
 end
 
+
+figure(1), clf
+h = pcolor(map);
+colormap(gray(3))
+set(h, 'EdgeColor', 'none');
+axis equal
 
 
 
