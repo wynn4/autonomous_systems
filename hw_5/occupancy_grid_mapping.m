@@ -12,31 +12,41 @@ load('state_meas_data.mat')
 
 % sensor params
 alpha = 1;              % meters
-beta = degtorad(5);     % radians
+beta = degtorad(2);     % radians
 z_max = 150;            % meters
 
 % other params
-grid_res = 100; % 100 x 100 grid map
+grid_res = 101; % 101 x 101 grid map
 grid_size = 1;  % meters
 
 % probability of occupied (eq 9.7)
 l0 = log(0.5/(1-0.5));
 
-% allocate memory to store map data
-l = 0.5 * ones(grid_res);
+% initialize l to be l0
+l = l0 * ones(grid_res);
+
+% initialize the map with equal probability of being free or being occupied
+map = 0.5 * ones(grid_res);
 
 % implement Occupancy Grid Mapping algorithm from Table 9.1 and Table 9.2
 for i = 1:length(X)
     for m = 1:grid_res
         for n = 1:grid_res
             % get the center location of the cell we're currently on
-            m_cent = [m - grid_size/2, n - grid_size/2];
+%             m_cent = [m - grid_size/2, n - grid_size/2];
+            m_cent = [m,n];
             if cell_in_sensor_beam(m_cent, X(:,i))
                 for p = 1:length(thk)
-                    l(m,n) = l(m,n) + inverse_range_sensor_model(m_cent, X(:,i), z(1,p,i), alpha, beta, z_max, thk(p))- l0;
-                    % saturate
-                    l(m,n) = sat(l(m,n));
+                    inv_r_s_m = inverse_range_sensor_model(m_cent, X(:,i), z(1,p,i), alpha, beta, z_max, thk(p));
+                    if inv_r_s_m ~= -999
+                        l(m,n) = l(m,n) + inv_r_s_m - l0;
+                    end
                 end
+                
+                % convert back to probability land
+                prob = exp(l(m,n));
+                prob = prob/(1 + prob);
+                map(m,n) = prob;
             else
                 l(m,n) = l(m,n);
             end
@@ -44,34 +54,24 @@ for i = 1:length(X)
         
     end
     % monitor progress
-    disp(i)
+    % disp(i)
 end
 
 
 %% Plots
-map = zeros(grid_res);
-
-% go thrugh the map and flip the values (for plotting purposes)
-for m = 1:grid_res
-    for n = 1:grid_res
-        if l(m,n) > 0.5
-            map(m,n) = 0;
-            
-        elseif l(m,n) < 0.5
-            map(m,n) = 1;
-            
-        else
-            map(m,n) = l(m,n);
-        end
-    end
-end
 
 
+% plot using surf
 figure(1), clf
-h = pcolor(map);
-colormap(gray(3))
-set(h, 'EdgeColor', 'none');
+surf(map','LineStyle', 'none');
+colorbar;
+colormap(flipud(gray));
+view(0,90)
+axis([1 101 1 101])
 axis equal
+grid off
+
+
 
 
 

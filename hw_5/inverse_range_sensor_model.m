@@ -1,8 +1,9 @@
 function l = inverse_range_sensor_model(m, x_t, z_t, alpha, beta, z_max, theta_k)
 
     l0 = log(0.5/(1-0.5));
-    locc = log(0.6/(1-0.6));
-    lfree = log(0.4/(1-0.4));
+    locc = log(0.7/(1-0.7));
+    lfree = log(0.3/(1-0.3));
+    
     
     % get the x and y coordinates of the center of the grid cell
     xi = m(1);
@@ -31,12 +32,8 @@ function l = inverse_range_sensor_model(m, x_t, z_t, alpha, beta, z_max, theta_k
         l = lfree;
     
     else
-        l = l0;
+        l = -999;   % this case shouldn't happen but sometimes it does?
     end
     
-    % cell_status:
-    % -1 = don't change cell status
-    % 1 = cell occupied
-    % 0 = cell free
 
 end
