@@ -66,10 +66,9 @@ theta = mu_t(3);
 drawRobot(x,y,theta,landmarks,first);
 first = 1;
 
-tic;
 % loop through each time step
 for i=1:length(t)
-    pause(0.01)
+%     pause(0.01)
     % Task 1: Implement velocity motion model (Table 5.3)
     v_hat = v_c(i) + randn*sqrt(alpha_1*(v_c(i))^2 + alpha_2*(w_c(i))^2);
     w_hat = w_c(i) + randn*sqrt(alpha_3*(v_c(i))^2 + alpha_4*(w_c(i))^2);
@@ -135,8 +134,11 @@ for i=1:length(t)
         
         % line 9
         % if we haven't seen this landmark before
-        if 0
+        if mu_t(3 + 2*j-1) == 0
             % line 10
+            mu_t(3 + 2*j-1) = mu_t(1) + (ranges(j)*cos(bearings(j) + mu_t(3)));
+            mu_t(3 + 2*j) = mu_t(2) + (ranges(j)*sin(bearings(j) + mu_t(3)));
+            
         end
         
         % line 12
@@ -170,10 +172,7 @@ for i=1:length(t)
         while bearing_meas - zhat_t(2) < -pi
             bearing_meas = bearing_meas + 2 * pi;
         end
-%         error = bearing_meas - zhat_t(2);
-%         disp(error)
-%         pause(1)
-        % line 18
+
         mu_t = mu_t + K_t * ([range_meas; bearing_meas] - zhat_t);
         
         % line 19
@@ -189,9 +188,10 @@ for i=1:length(t)
     Sigma_y(i) = Sigma_t(2,2);
     Sigma_theta(i) = Sigma_t(3,3);
 end
-toc;
 plot(x_true, y_true, x_est, y_est,'-.')
-
+for i = 1:num_landmarks
+    plot(mu_t(3+2*i-1), mu_t(3+2*i), 'ob')
+end
 figure(2), clf
 subplot(3,1,1)
 plot(t, x_true, t, x_est,'-.')
@@ -211,3 +211,4 @@ title('Robot Heading vs Time')
 xlabel('time (s)')
 ylabel('heading (rad)')
 legend('truth','estimate')
+
