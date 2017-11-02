@@ -26,13 +26,24 @@ sigma_r = 0.1;
 sigma_phi = 0.05;
 
 % landmark locations
-landmarks = [6, -7, 6, 5, 3, 3, -2, -2, -7, -10;   % [x_positions; y_positions]
-             4, 8, -4, -9, -1, 9, 2, -7, -5, 3];
-% landmarks = [6, -7, 6;   % [x_positions; y_positions]
-%              4, 8, -4];
-         
-num_landmarks = size(landmarks);
-num_landmarks = num_landmarks(2);
+% landmarks = [6, -7, 6, 5, 3, 3, -2, -2, -7, -10;   % [x_positions; y_positions]
+%              4, 8, -4, -9, -1, 9, 2, -7, -5, 3];
+% landmarks = [6, -7, 6, 5, 3, 3, -2, -2, -7, -10, -7, -2, 9, -1, -5, -1, 10, 1, 9, -9;   % [x_positions; y_positions]
+%              4, 8, -4, -9, -1, 9, 2, -7, -5, 3, 0, 6, 9, -2, -9, 9, 0, 5, -9, -9];
+
+% num_landmarks = size(landmarks);
+% num_landmarks = num_landmarks(2);
+
+min = -10;
+max = 10;
+num_landmarks = 50;
+landmarks_x = zeros(1,num_landmarks);
+landmarks_y = zeros(1,num_landmarks);
+for i = 1:num_landmarks
+    landmarks_x(i) = (max-min).*rand(1,1) + min;
+    landmarks_y(i) = (max-min).*rand(1,1) + min;
+end
+landmarks = [landmarks_x; landmarks_y];
 
 % initial state (always zero for EKF-SLAM)
 mu_t = zeros(3 + num_landmarks * 2, 1);
@@ -66,6 +77,7 @@ theta = mu_t(3);
 drawRobot(x,y,theta,landmarks,first);
 first = 1;
 
+beam_width = degtorad(90);
 % loop through each time step
 for i=1:length(t)
 %     pause(0.01)
@@ -163,20 +175,30 @@ for i=1:length(t)
         % line 17
         K_t = Sigma_t * H_t' / (H_t * Sigma_t * H_t' + Q_t);
         
-        % detour...wrap heading measurement
         range_meas = ranges(j);
         bearing_meas = bearings(j);
-        while bearing_meas - zhat_t(2) > pi
-            bearing_meas = bearing_meas - 2 * pi;
-        end
-        while bearing_meas - zhat_t(2) < -pi
-            bearing_meas = bearing_meas + 2 * pi;
-        end
-
-        mu_t = mu_t + K_t * ([range_meas; bearing_meas] - zhat_t);
         
-        % line 19
-        Sigma_t = (eye(3 + num_landmarks * 2) - K_t * H_t)*Sigma_t;
+        % check to see if the landmark is within the beam_width
+        if abs(bearing_meas) > beam_width/2
+            update = 0;
+        else
+            update = 1;
+        end
+        
+        if update
+            % detour...wrap heading measurement
+            while bearing_meas - zhat_t(2) > pi
+                bearing_meas = bearing_meas - 2 * pi;
+            end
+            while bearing_meas - zhat_t(2) < -pi
+                bearing_meas = bearing_meas + 2 * pi;
+            end
+            
+            mu_t = mu_t + K_t * ([range_meas; bearing_meas] - zhat_t);
+            
+            % line 19
+            Sigma_t = (eye(3 + num_landmarks * 2) - K_t * H_t)*Sigma_t;
+        end
     end
     
     % save the estimate for plotting
@@ -192,6 +214,8 @@ plot(x_true, y_true, x_est, y_est,'-.')
 for i = 1:num_landmarks
     plot(mu_t(3+2*i-1), mu_t(3+2*i), 'ob')
 end
+
+%% plots
 figure(2), clf
 subplot(3,1,1)
 plot(t, x_true, t, x_est,'-.')
@@ -211,4 +235,40 @@ title('Robot Heading vs Time')
 xlabel('time (s)')
 ylabel('heading (rad)')
 legend('truth','estimate')
+
+% error plots
+figure(3), clf
+subplot(3,1,1)
+plot(t,x_true - x_est,t,2*sqrt(Sigma_x),'r',t,-2*sqrt(Sigma_x),'r')
+title('Robot X-Position Error')
+ylabel('error (m)')
+legend('error','2-sigma bound')
+
+subplot(3,1,2)
+plot(t,y_true - y_est,t,2*sqrt(Sigma_y),'r',t,-2*sqrt(Sigma_y),'r')
+title('Robot Y-Position Error')
+ylabel('error (m)')
+legend('error','2-sigma bound')
+
+subplot(3,1,3)
+plot(t,theta_true - theta_estimated,t,2*sqrt(Sigma_theta),'r',t,-2*sqrt(Sigma_theta),'r')
+title('Robot Heading Error')
+xlabel('time (s)')
+ylabel('error (rad)')
+legend('error','2-sigma bound')
+
+% plot final covariance matrix Sigma_t
+figure(4), clf
+% plot using surf
+surf(Sigma_t,'LineStyle', 'none');
+title('EKF-SLAM Covariance Matrix')
+xlabel('Column')
+ylabel('Row')
+colorbar;
+colormap(flipud(gray));
+view(0,90)
+axis([1, num_landmarks*2, 1, num_landmarks*2])
+axis equal
+axis ij
+grid off
 
