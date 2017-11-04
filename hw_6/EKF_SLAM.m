@@ -2,13 +2,13 @@
 % Jesse Wynn
 % November 2, 2017
 
-clc;
-clear all;
-close all;
+clc
+clear
+close all
 
 % time params
 Ts = 0.1;   % sec
-t = 0:Ts:30;
+t = 0:Ts:40;
 
 % commanded velocity
 v_c = 1 + 0.5 * cos(2 * pi * (0.2) * t);
@@ -26,24 +26,24 @@ sigma_r = 0.1;
 sigma_phi = 0.05;
 
 % landmark locations
-% landmarks = [6, -7, 6, 5, 3, 3, -2, -2, -7, -10;   % [x_positions; y_positions]
-%              4, 8, -4, -9, -1, 9, 2, -7, -5, 3];
+landmarks = [6, -7, 6, 5, 3, 3, -2, -2, -7, -10;   % [x_positions; y_positions]
+             4, 8, -4, -9, -1, 9, 2, -7, -5, 3];
 % landmarks = [6, -7, 6, 5, 3, 3, -2, -2, -7, -10, -7, -2, 9, -1, -5, -1, 10, 1, 9, -9;   % [x_positions; y_positions]
 %              4, 8, -4, -9, -1, 9, 2, -7, -5, 3, 0, 6, 9, -2, -9, 9, 0, 5, -9, -9];
 
-% num_landmarks = size(landmarks);
-% num_landmarks = num_landmarks(2);
+num_landmarks = size(landmarks);
+num_landmarks = num_landmarks(2);
 
-min = -10;
-max = 10;
-num_landmarks = 50;
-landmarks_x = zeros(1,num_landmarks);
-landmarks_y = zeros(1,num_landmarks);
-for i = 1:num_landmarks
-    landmarks_x(i) = (max-min).*rand(1,1) + min;
-    landmarks_y(i) = (max-min).*rand(1,1) + min;
-end
-landmarks = [landmarks_x; landmarks_y];
+% min = -10;
+% max = 10;
+% num_landmarks = 50;
+% landmarks_x = zeros(1,num_landmarks);
+% landmarks_y = zeros(1,num_landmarks);
+% for i = 1:num_landmarks
+%     landmarks_x(i) = (max-min).*rand(1,1) + min;
+%     landmarks_y(i) = (max-min).*rand(1,1) + min;
+% end
+% landmarks = [landmarks_x; landmarks_y];
 
 % initial state (always zero for EKF-SLAM)
 mu_t = zeros(3 + num_landmarks * 2, 1);
@@ -69,6 +69,11 @@ Sigma_theta = zeros(1,length(t));
 range = zeros(length(t),num_landmarks);
 bearing = zeros(length(t),num_landmarks);
 
+% big matirx of all the 2x2 covariances for all of the landmarks at each
+% time step
+covariance_data = zeros(2*length(t),2*num_landmarks);
+landmark_locations = zeros(length(t),2*num_landmarks);
+
 % plot the first time
 first = 0;
 x = mu_t(1);
@@ -77,10 +82,10 @@ theta = mu_t(3);
 drawRobot(x,y,theta,landmarks,first);
 first = 1;
 
-beam_width = degtorad(90);
+beam_width = degtorad(45);
 % loop through each time step
 for i=1:length(t)
-%     pause(0.01)
+    pause(0.01)
     % Task 1: Implement velocity motion model (Table 5.3)
     v_hat = v_c(i) + randn*sqrt(alpha_1*(v_c(i))^2 + alpha_2*(w_c(i))^2);
     w_hat = w_c(i) + randn*sqrt(alpha_3*(v_c(i))^2 + alpha_4*(w_c(i))^2);
@@ -184,7 +189,8 @@ for i=1:length(t)
         else
             update = 1;
         end
-        
+        update = 1;
+%         disp(update)
         if update
             % detour...wrap heading measurement
             while bearing_meas - zhat_t(2) > pi
@@ -209,6 +215,14 @@ for i=1:length(t)
     Sigma_x(i) = Sigma_t(1,1);
     Sigma_y(i) = Sigma_t(2,2);
     Sigma_theta(i) = Sigma_t(3,3);
+    
+    % save all the landmark covariance data
+    for k = 1:num_landmarks
+        covariance_data(2*i-1:2*i,2*k-1:2*k) = Sigma_t(3+2*k-1:3+2*k,3+2*k-1:3+2*k);
+        
+        landmark_locations(i,2*k-1:2*k) = mu_t(3+2*k-1:3+2*k)';
+    end
+    
 end
 plot(x_true, y_true, x_est, y_est,'-.')
 for i = 1:num_landmarks
@@ -259,6 +273,13 @@ legend('error','2-sigma bound')
 
 % plot final covariance matrix Sigma_t
 figure(4), clf
+for i = 1:(3+2*num_landmarks)
+    for j = 1:(3+2*num_landmarks)
+        if Sigma_t(i,j) > 1
+            Sigma_t(i,j) = 10;
+        end
+    end
+end
 % plot using surf
 surf(Sigma_t,'LineStyle', 'none');
 title('EKF-SLAM Covariance Matrix')
@@ -271,4 +292,30 @@ axis([1, num_landmarks*2, 1, num_landmarks*2])
 axis equal
 axis ij
 grid off
+
+
+%% plot covariance ellipses
+figure(5), clf
+% for i = 1:2*length(t)
+%     for j = 1:length(covariance_data(1,:))
+%         if covariance_data(i,j) > 1
+%             covariance_data(i,j) = 10;
+%         end
+%     end
+% end
+for i = 1:length(t)
+    for j = 1:num_landmarks
+        mat2b2 = covariance_data(2*i-1:2*i,2*j-1:2*j);
+        landmark_x = landmark_locations(i,2*j-1);
+        landmark_y = landmark_locations(i,2*j);
+        if norm(mat2b2) < 1000
+            [ellipse_x, ellipse_y] = getellipse(mat2b2, landmark_x, landmark_y);
+            plot(ellipse_x, ellipse_y)
+        end
+        hold on
+        plot(landmark_x, landmark_y, 'or','LineWidth',0.5)
+    end
+    pause(0.1);
+    clf
+end
 
