@@ -175,13 +175,21 @@ for i=1:length(t)
              
         % line 16
         H_t = (1/q) .* [-sqrt(q)*delta(1), -sqrt(q)*delta(2), 0, sqrt(q)*delta(1), sqrt(q)*delta(2);
-                       delta(2), -delta(1), -q, -delta(2), delta(1)] * F_x_j;
-                   
+            delta(2), -delta(1), -q, -delta(2), delta(1)] * F_x_j;
+        
         % line 17
         K_t = Sigma_t * H_t' / (H_t * Sigma_t * H_t' + Q_t);
         
         range_meas = ranges(j);
         bearing_meas = bearings(j);
+        
+        % detour...wrap bearing measurement
+        while bearing_meas > pi
+            bearing_meas = bearing_meas - 2 * pi;
+        end
+        while bearing_meas < -pi
+            bearing_meas = bearing_meas + 2 * pi;
+        end
         
         % check to see if the landmark is within the beam_width
         if abs(bearing_meas) > beam_width/2
@@ -189,18 +197,20 @@ for i=1:length(t)
         else
             update = 1;
         end
-        update = 1;
-%         disp(update)
+
+        disp(update)
         if update
-            % detour...wrap heading measurement
-            while bearing_meas - zhat_t(2) > pi
-                bearing_meas = bearing_meas - 2 * pi;
+            residual = [range_meas; bearing_meas] - zhat_t;
+            % detour...wrap the residual
+            while residual(2) > pi
+                residual(2) = residual(2) - 2 * pi;
             end
-            while bearing_meas - zhat_t(2) < -pi
-                bearing_meas = bearing_meas + 2 * pi;
+            while residual(2) < -pi
+                residual(2) = residual(2) + 2 * pi;
             end
             
-            mu_t = mu_t + K_t * ([range_meas; bearing_meas] - zhat_t);
+            % line 18
+            mu_t = mu_t + K_t * (residual);
             
             % line 19
             Sigma_t = (eye(3 + num_landmarks * 2) - K_t * H_t)*Sigma_t;
