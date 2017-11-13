@@ -26,10 +26,10 @@ sigma_r = 0.1;
 sigma_phi = 0.05;
 
 % landmark locations
-landmarks = [6, -7, 6, 5, 3, 3, -2, -2, -7, -10;   % [x_positions; y_positions]
-             4, 8, -4, -9, -1, 9, 2, -7, -5, 3];
-% landmarks = [6, -7, 6, 5, 3, 3, -2, -2, -7, -10, -7, -2, 9, -1, -5, -1, 10, 1, 9, -9;   % [x_positions; y_positions]
-%              4, 8, -4, -9, -1, 9, 2, -7, -5, 3, 0, 6, 9, -2, -9, 9, 0, 5, -9, -9];
+% landmarks = [6, -7, 6, 5, 3, 3, -2, -2, -7, -10;   % [x_positions; y_positions]
+%              4, 8, -4, -9, -1, 9, 2, -7, -5, 3];
+landmarks = [6, -7, 6, 5, 3, 3, -2, -2, -7, -10, -7, -2, 9, -1, -5, -1, 10, 1, 9, -9;   % [x_positions; y_positions]
+             4, 8, -4, -9, -1, 9, 2, -7, -5, 3, 0, 6, 9, -2, -9, 9, 0, 5, -9, -9];
 
 num_landmarks = size(landmarks);
 num_landmarks = num_landmarks(2);
@@ -82,7 +82,7 @@ theta = mu_t(3);
 drawRobot(x,y,theta,landmarks,first);
 first = 1;
 
-beam_width = degtorad(45);
+beam_width = degtorad(90);
 % loop through each time step
 for i=1:length(t)
     pause(0.01)
