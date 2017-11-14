@@ -82,6 +82,9 @@ Y_t_Sigma = zeros(2*N, 2*M);
 W_t = zeros(1,M);
 p0 = 0.1;   % default importance weight
 
+% vector for storing landmark locations
+landmark_locations = zeros(2*N, length(t));
+
 % plot the first time
 first = 0;
 x = 0;
@@ -204,6 +207,7 @@ for i=1:length(t)
                     delta = [delta_x, delta_y]';
                     q = delta'*delta;
                     
+                    % from line 16 of EKF-SLAM
                     H = 1/q * [sqrt(q)*delta_x, sqrt(q)*delta_y;
                         -delta_y, delta_x];
                     
@@ -241,18 +245,24 @@ for i=1:length(t)
     [Y_t_x, Y_t_mu, Y_t_Sigma] = LVS_Y(Y_t_x, Y_t_mu, Y_t_Sigma, W_t, N);
     % END FAST-SLAM 1.0
     
-    % store some data for plots
+    % update the plot
+    drawRobot(x,y,theta,landmarks, Y_t_x, first)
+    pause(0.001)
+    
+    % store some data for later plots
     x_est(i) = mean(Y_t_x(1,:));
     y_est(i) = mean(Y_t_x(2,:));
     theta_est(i) = mean(Y_t_x(3,:));
     
-    % update the plot
-    drawRobot(x,y,theta,landmarks, Y_t_x, first)
-    pause(0.001)
+    for z=1:N
+        landmark_locations(2*z-1,i) = mean(Y_t_mu(2*z-1,:));
+        landmark_locations(2*z,i) = mean(Y_t_mu(2*z,:));
+    end
+    
 end
 plot(x_true, y_true, x_est, y_est,'-.')
 for i = 1:num_landmarks
-    plot(Y_t_mu(2*i-1), Y_t_mu(2*i), 'ob')
+    plot(landmark_locations(2*i-1,length(t)), landmark_locations(2*i, length(t)), 'ob')
 end
 
 %% plots
