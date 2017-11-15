@@ -7,7 +7,7 @@ clear
 close all
 
 % time params
-Ts = 0.1;   % sec
+Ts = 0.02;   % sec
 t = 0:Ts:20;
 
 % commanded velocity
@@ -31,25 +31,26 @@ Q_t = [sigma_r^2, 0;
            0, sigma_phi^2];
 
 % landmark locations
-landmarks = [6, -7, 6, 5, 3, 3, -2, -2, -7, -10;   % [x_positions; y_positions]
-             4, 8, -4, -9, -1, 9, 2, -7, -5, 3];
+% landmarks = [6, -7, 6, 5, 3, 3, -2, -2, -7, -10;   % [x_positions; y_positions]
+%              4, 8, -4, -9, -1, 9, 2, -7, -5, 3];
 % landmarks = [6, -7, 6, 5, 3, 3, -2, -2, -7, -10, -7, -2, 9, -1, -5, -1, 10, 1, 9, -9;   % [x_positions; y_positions]
 %              4, 8, -4, -9, -1, 9, 2, -7, -5, 3, 0, 6, 9, -2, -9, 9, 0, 5, -9, -9];
 
-num_landmarks = size(landmarks);
-num_landmarks = num_landmarks(2);
-N = num_landmarks;
+% num_landmarks = size(landmarks);
+% num_landmarks = num_landmarks(2);
+% N = num_landmarks;
 
-% min = -10;
-% max = 10;
-% num_landmarks = 50;
-% landmarks_x = zeros(1,num_landmarks);
-% landmarks_y = zeros(1,num_landmarks);
-% for i = 1:num_landmarks
-%     landmarks_x(i) = (max-min).*rand(1,1) + min;
-%     landmarks_y(i) = (max-min).*rand(1,1) + min;
-% end
-% landmarks = [landmarks_x; landmarks_y];
+min_ = -10;
+max_ = 10;
+num_landmarks = 50;
+N = num_landmarks;
+landmarks_x = zeros(1,num_landmarks);
+landmarks_y = zeros(1,num_landmarks);
+for i = 1:num_landmarks
+    landmarks_x(i) = (max_-min_).*rand(1,1) + min_;
+    landmarks_y(i) = (max_-min_).*rand(1,1) + min_;
+end
+landmarks = [landmarks_x; landmarks_y];
 
 % plotting / storing stuff
 x_true = zeros(1,length(t));
@@ -70,7 +71,7 @@ bearing = zeros(length(t),num_landmarks);
 % FAST-SLAM stuff
 
 % number of particles
-M = 1000;
+M = 200;
 
 % allocate memory to hold particles representing the robot's state
 % initialize them all to zero (we know we're at [0 0 0]' when t==0
@@ -93,7 +94,7 @@ theta = 0;
 drawRobot(x,y,theta,landmarks, Y_t_x, first);
 first = 1;
 pause(0.1)
-beam_width = degtorad(360);
+beam_width = degtorad(90);
 % loop through each time step
 for i=1:length(t)
 %     pause(0.01)
@@ -185,7 +186,7 @@ for i=1:length(t)
                 else
                     update = 1;
                 end
-                
+                % disp(update)
                 if update
                     % line 12, measurement prediction
                     zhat = h(Y_t_mu(2*j-1:2*j,k), x_t);
@@ -213,6 +214,7 @@ for i=1:length(t)
                     
                     % line 14, measurement covariance
                     Q = H * Y_t_Sigma(2*j-1:2*j,2*k-1:2*k) * H' + Q_t;
+                    Q = 10*Q;
                     
                     % line 15, calculate Kalman gain
                     K = Y_t_Sigma(2*j-1:2*j,2*k-1:2*k) * H' * inv(Q);
@@ -244,6 +246,9 @@ for i=1:length(t)
     
     [Y_t_x, Y_t_mu, Y_t_Sigma] = LVS_Y(Y_t_x, Y_t_mu, Y_t_Sigma, W_t, N);
     % END FAST-SLAM 1.0
+    
+    % reset your weights
+    W_t = zeros(1,M);
     
     % update the plot
     drawRobot(x,y,theta,landmarks, Y_t_x, first)
