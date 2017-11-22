@@ -7,7 +7,7 @@ clear
 close all
 
 % time params
-Ts = 0.02;   % sec
+Ts = 0.1;   % sec
 t = 0:Ts:20;
 
 % commanded velocity
@@ -71,13 +71,21 @@ bearing = zeros(length(t),num_landmarks);
 % FAST-SLAM stuff
 
 % number of particles
-M = 200;
+M = 500;
 
 % allocate memory to hold particles representing the robot's state
 % initialize them all to zero (we know we're at [0 0 0]' when t==0
 Y_t_x = zeros(3, M);
 Y_t_mu = zeros(2*N, M);         % [[x,y]',[x,y]',[x,y]', ...]
 Y_t_Sigma = zeros(2*N, 2*M);
+% initialize Sigmas to be very large
+for i=1:M
+    for j=1:N
+        Y_t_Sigma(2*i-1,2*j-1) = 10e10;
+        Y_t_Sigma(2*i,2*j) = 10e10;
+    end
+end
+Y_t_Sigma = Y_t_Sigma(1:2*N,1:2*M);
 
 % vector to hold weights
 W_t = zeros(1,M);
@@ -94,7 +102,7 @@ theta = 0;
 drawRobot(x,y,theta,landmarks, Y_t_x, first);
 first = 1;
 pause(0.1)
-beam_width = degtorad(90);
+beam_width = degtorad(180);
 % loop through each time step
 for i=1:length(t)
 %     pause(0.01)
@@ -214,7 +222,7 @@ for i=1:length(t)
                     
                     % line 14, measurement covariance
                     Q = H * Y_t_Sigma(2*j-1:2*j,2*k-1:2*k) * H' + Q_t;
-                    Q = 10*Q;
+%                     Q = 10*Q;
                     
                     % line 15, calculate Kalman gain
                     K = Y_t_Sigma(2*j-1:2*j,2*k-1:2*k) * H' * inv(Q);
@@ -246,6 +254,8 @@ for i=1:length(t)
     
     [Y_t_x, Y_t_mu, Y_t_Sigma] = LVS_Y(Y_t_x, Y_t_mu, Y_t_Sigma, W_t, N);
     % END FAST-SLAM 1.0
+    
+    [val, index] = max(W_t);
     
     % reset your weights
     W_t = zeros(1,M);
