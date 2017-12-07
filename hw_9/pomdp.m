@@ -2,11 +2,10 @@ clc
 clear
 close all
 
-tic;
 % POMDP Algorithm From Table 15.1
 
 % time horizon
-T = 20;
+T = 2;
 gamma = 1;
 
 % prob of meas z given x
@@ -81,13 +80,15 @@ for tau = 1:T
         
     end
     
-    %prune Y_prime
+    % prune Y_prime
     Y_pruned = Pruninator(Y_prime);
     Y = Y_pruned;
     
 end
 
-toc;
+
+
+
 % plots
 figure(1), clf
 hold on
@@ -95,6 +96,12 @@ for i = 1:length(Y)
     plot(0:1, fliplr(Y(i, 2:3)))
 end
 
+%% last part
+
+p1 = 0.6;
+[u_hat, value] = policy_POMDP(Y, p1)
+p1_prime = (0.7 * p1)/(0.4*p1 + 0.3)
+p2_prime = 0.3 * (1 - p1)/(0.4*p1 + 0.3)
 
 
 
